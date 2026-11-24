@@ -3,6 +3,7 @@ package com.biblicom.backend.entity;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -11,6 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -33,12 +35,7 @@ public class Autor {
     private String nome;
 
     @Column(name = "livros")
-    @ManyToMany 
-    @JoinTable(
-        name = "tb_autores_livros",
-        joinColumns = @JoinColumn(name = "autor_id"),
-        inverseJoinColumns = @JoinColumn(name = "livro_id")
-    )
+    @OneToMany(mappedBy = "autor", cascade = CascadeType.ALL)
     private List<Livro> livros = new ArrayList<>();
 
 }
