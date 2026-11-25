@@ -27,14 +27,14 @@ public class LivroService {
     // Listar todos os livros
     public List<LivroResponseDTO> getLivros(){
         return livroRepository.findAll().stream()
-            .map(livro -> new LivroResponseDTO(livro.getTitulo(), livro.getGenero(), livro.getAutor().getNome()))
+            .map(livro -> new LivroResponseDTO(livro.getId(), livro.getTitulo(), livro.getGenero(), livro.getAutor().getNome()))
             .toList();
     }
 
     // Listar livro por ID
     public LivroResponseDTO getLivroById(String id){
         return livroRepository.findById(UUID.fromString(id))
-            .map(livro -> new LivroResponseDTO(livro.getTitulo(), livro.getGenero(), livro.getAutor().getNome()))
+            .map(livro -> new LivroResponseDTO(livro.getId(), livro.getTitulo(), livro.getGenero(), livro.getAutor().getNome()))
             .orElse(null);
     }
 
@@ -44,7 +44,7 @@ public class LivroService {
         var autor = autorRepository.findById(Long.decode(novoLivro.autorId()));
         
         Livro livro = new Livro(
-            UUID.randomUUID(),
+            null,
             novoLivro.titulo(),
             novoLivro.genero(),
             autor.get()
@@ -52,7 +52,7 @@ public class LivroService {
 
         livroRepository.save(livro); // Fazer tratamento de erro
 
-        return new LivroResponseDTO(livro.getTitulo(), livro.getGenero(), livro.getAutor().getNome());
+        return new LivroResponseDTO(livro.getId(), livro.getTitulo(), livro.getGenero(), livro.getAutor().getNome());
     }
 
     // Editar livro
@@ -75,7 +75,7 @@ public class LivroService {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Autor não encontrado");
 
             }
-            return new LivroResponseDTO(l.getTitulo(), l.getGenero(), l.getAutor().getNome());
+            return new LivroResponseDTO(l.getId(), l.getTitulo(), l.getGenero(), l.getAutor().getNome());
 
         }
 
