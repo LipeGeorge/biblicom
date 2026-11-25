@@ -17,15 +17,15 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
+@Table(name = "tb_livros")
 @Getter 
 @Setter 
 @NoArgsConstructor 
 @AllArgsConstructor 
-@Table(name = "tb_livros")
 public class Livro {
 
     @Id 
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(name = "titulo")
