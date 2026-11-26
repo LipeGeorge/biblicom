@@ -3,6 +3,7 @@ package com.biblicom.backend.service;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -32,69 +33,88 @@ public class LivroService {
     }
 
     // Listar livro por ID
-    public LivroResponseDTO getLivroById(String id){
-        return livroRepository.findById(UUID.fromString(id))
+    public LivroResponseDTO getLivroById(UUID id){
+        return livroRepository.findById(id)
             .map(livro -> new LivroResponseDTO(livro.getId(), livro.getTitulo(), livro.getGenero(), livro.getAutor().getNome()))
-            .orElse(null);
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Livro não encontrado"));
     }
 
     // Cadastrar novo livro
     public LivroResponseDTO createLivro(LivroCreateDTO novoLivro){
-
-        var autor = autorRepository.findById(Long.decode(novoLivro.autorId()));
+        var autor = autorRepository.findById(parseAutorId(novoLivro.autorId()))
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Autor não encontrado"));
         
         Livro livro = new Livro(
             null,
             novoLivro.titulo(),
             novoLivro.genero(),
-            autor.get(),
+            autor,
             null
         );
 
-        livroRepository.save(livro); // Fazer tratamento de erro
+        Livro savedLivro = livroRepository.save(livro);
 
-        return new LivroResponseDTO(livro.getId(), livro.getTitulo(), livro.getGenero(), livro.getAutor().getNome());
+        return toResponseDTO(savedLivro);
     }
 
     // Editar livro
-    public LivroResponseDTO updateLivro(String id, LivroCreateDTO novoLivro){
+    public LivroResponseDTO updateLivro(UUID id, LivroCreateDTO novoLivro){
 
-        var livro = livroRepository.findById(UUID.fromString(id));
-        var autor = autorRepository.findById(Long.decode(novoLivro.autorId()));
+        Livro livro = livroRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Livro não encontrado"));
+        var autor = autorRepository.findById(parseAutorId(novoLivro.autorId()))
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Autor não encontrado"));
 
-        if(!livro.isEmpty()){
-            Livro l = livro.get();
+        livro.setTitulo(novoLivro.titulo());
+        livro.setGenero(novoLivro.genero());
+        livro.setAutor(autor);
 
-            l.setTitulo(novoLivro.titulo());
-            l.setGenero(novoLivro.genero());
-
-            if(!autor.isEmpty()){
-                l.setAutor(autor.get());
-                livroRepository.save(l);
-
-            } else {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Autor não encontrado");
-
-            }
-            return new LivroResponseDTO(l.getId(), l.getTitulo(), l.getGenero(), l.getAutor().getNome());
-
-        }
-
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Livro não encontrado");
+        return toResponseDTO(livroRepository.save(livro));
 
     }
 
     // Deletar Livro
-    public void deleteLivro(String id){
-        
-        UUID novoId = UUID.fromString(id);
-        var livro = livroRepository.findById(novoId);
-        
-        if(!livro.isEmpty()){
-            livroRepository.deleteById(novoId);
-        }
+    public void deleteLivro(UUID id){
+        Livro livro = livroRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Livro não encontrado"));
 
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Livro não encontrado");
+        try {
+            livroRepository.delete(livro);
+        } catch (DataIntegrityViolationException exception) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Livro não pode ser apagado porque possui vínculos",
+                exception);
+        }
+    }
+
+    private Long parseAutorId(String id){
+        try {
+            return Long.parseLong(id);
+        } catch (NumberFormatException exception) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "ID do autor inválido",
+                exception);
+        }
+    }
+
+    private LivroResponseDTO toResponseDTO(Livro livro){
+        return new LivroResponseDTO(
+            livro.getId(),
+            livro.getTitulo(),
+            livro.getGenero(),
+            livro.getAutor().getNome());
     }
 
 }
