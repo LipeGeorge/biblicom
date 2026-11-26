@@ -37,4 +37,8 @@ public class Livro {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn (name = "autor_id")
     private Autor autor;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "leitor_id")
+    private Leitor leitor;
 }

@@ -47,7 +47,8 @@ public class LivroService {
             null,
             novoLivro.titulo(),
             novoLivro.genero(),
-            autor.get()
+            autor.get(),
+            null
         );
 
         livroRepository.save(livro); // Fazer tratamento de erro
