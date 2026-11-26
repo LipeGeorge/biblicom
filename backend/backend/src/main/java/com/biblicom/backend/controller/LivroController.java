@@ -17,6 +17,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import jakarta.validation.Valid;
 import com.biblicom.backend.entity.dto.Livro.LivroCreateDTO;
 import com.biblicom.backend.entity.dto.Livro.LivroResponseDTO;
+import com.biblicom.backend.entity.dto.Livro.LivroUpdateDTO;
+import com.biblicom.backend.entity.dto.Exemplar.ExemplarResponseDTO;
 import com.biblicom.backend.service.LivroService;
 
 @RestController 
@@ -33,6 +35,11 @@ public class LivroController {
     @GetMapping 
     public ResponseEntity<List<LivroResponseDTO>> getLivros(){
         return ResponseEntity.ok(livroService.getLivros());
+    }
+
+    @GetMapping("/{id}/exemplares")
+    public ResponseEntity<List<ExemplarResponseDTO>> getExemplares(@PathVariable UUID id){
+        return ResponseEntity.ok(livroService.getExemplares(id));
     }
 
     // Listar livro por Id
@@ -56,9 +63,9 @@ public class LivroController {
     @PutMapping("/{id}")
     public ResponseEntity<LivroResponseDTO> updateLivro(
         @PathVariable UUID id,
-        @Valid @RequestBody LivroCreateDTO livroCreateDTO
+        @Valid @RequestBody LivroUpdateDTO livroUpdateDTO
     ){
-        return ResponseEntity.ok(livroService.updateLivro(id, livroCreateDTO));
+        return ResponseEntity.ok(livroService.updateLivro(id, livroUpdateDTO));
 
     }
 

@@ -6,7 +6,10 @@ public record LivroResponseDTO(
     UUID id,
     String titulo,
     String genero,
-    String autor
+    String autor,
+    Long totalExemplares,
+    Long exemplaresDisponiveis,
+    Long exemplaresEmprestados
 ) {
     
 }

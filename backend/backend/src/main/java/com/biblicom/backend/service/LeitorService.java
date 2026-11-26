@@ -11,9 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.biblicom.backend.entity.Leitor;
 import com.biblicom.backend.entity.dto.Leitor.LeitorCreateDTO;
 import com.biblicom.backend.entity.dto.Leitor.LeitorResponseDTO;
-import com.biblicom.backend.entity.dto.Leitor.LeitorResponseLivroDTO;
 import com.biblicom.backend.entity.dto.Leitor.LeitorUpdateDTO;
-import com.biblicom.backend.entity.dto.Livro.LivroResponseDTO;
 import com.biblicom.backend.repository.LeitorRepository;
 
 @Service 
@@ -38,13 +36,6 @@ public class LeitorService {
     public LeitorResponseDTO getLeitorById(Long id){
         Leitor leitor = findLeitor(id);
         return toResponseDTO(leitor);
-    }
-
-    // Listar livros de leitor
-    @Transactional(readOnly = true)
-    public LeitorResponseLivroDTO getLivrosLeitor(Long id){
-        Leitor leitor = findLeitor(id);
-        return new LeitorResponseLivroDTO(toLivroResponseDTOs(leitor));
     }
 
     // Cadastrar Leitor
@@ -90,18 +81,7 @@ public class LeitorService {
             leitor.getId(),
             leitor.getNome(),
             leitor.getEmail(),
-            leitor.getCpf(),
-            toLivroResponseDTOs(leitor));
-    }
-
-    private List<LivroResponseDTO> toLivroResponseDTOs(Leitor leitor){
-        return leitor.getLivros().stream()
-            .map(livro -> new LivroResponseDTO(
-                livro.getId(),
-                livro.getTitulo(),
-                livro.getGenero(),
-                livro.getAutor() == null ? null : livro.getAutor().getNome()))
-            .toList();
+            leitor.getCpf());
     }
 
 }

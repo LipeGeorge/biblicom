@@ -1,7 +1,9 @@
 package com.biblicom.backend.entity.dto.Livro;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 public record LivroCreateDTO(
@@ -15,7 +17,11 @@ public record LivroCreateDTO(
 
     @NotBlank
     @Pattern(regexp = "\\d+")
-    String autorId
+    String autorId,
+
+    @NotNull
+    @PositiveOrZero
+    Integer quantidadeExemplares
 ) {
     
 }

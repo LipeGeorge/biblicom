@@ -16,7 +16,6 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import jakarta.validation.Valid;
 import com.biblicom.backend.entity.dto.Leitor.LeitorCreateDTO;
 import com.biblicom.backend.entity.dto.Leitor.LeitorResponseDTO;
-import com.biblicom.backend.entity.dto.Leitor.LeitorResponseLivroDTO;
 import com.biblicom.backend.entity.dto.Leitor.LeitorUpdateDTO;
 import com.biblicom.backend.service.LeitorService;
 
@@ -42,13 +41,6 @@ public class LeitorController {
         return ResponseEntity.ok(leitorService.getLeitorById(id));
     }
 
-    // listar livros do leitor *
-    @GetMapping("/{id}/livros")
-    public ResponseEntity<LeitorResponseLivroDTO> getLivrosLeitor(@PathVariable Long id){
-        return ResponseEntity.ok(leitorService.getLivrosLeitor(id));
-    }
-    
-    
     // cadastrar leitor
     @PostMapping
     public ResponseEntity<LeitorResponseDTO> createLeitor(@Valid @RequestBody LeitorCreateDTO leitorCreateDTO){
