@@ -1,6 +1,7 @@
 package com.biblicom.backend.controller;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -11,9 +12,13 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import com.biblicom.backend.entity.dto.LivroCreateDTO;
-import com.biblicom.backend.entity.dto.LivroResponseDTO;
+import jakarta.validation.Valid;
+import com.biblicom.backend.entity.dto.Livro.LivroCreateDTO;
+import com.biblicom.backend.entity.dto.Livro.LivroResponseDTO;
+import com.biblicom.backend.entity.dto.Livro.LivroUpdateDTO;
+import com.biblicom.backend.entity.dto.Exemplar.ExemplarResponseDTO;
 import com.biblicom.backend.service.LivroService;
 
 @RestController 
@@ -32,31 +37,41 @@ public class LivroController {
         return ResponseEntity.ok(livroService.getLivros());
     }
 
+    @GetMapping("/{id}/exemplares")
+    public ResponseEntity<List<ExemplarResponseDTO>> getExemplares(@PathVariable UUID id){
+        return ResponseEntity.ok(livroService.getExemplares(id));
+    }
+
     // Listar livro por Id
     @GetMapping("/{id}") 
-    public ResponseEntity<LivroResponseDTO> getLivroById(@PathVariable String id){
+    public ResponseEntity<LivroResponseDTO> getLivroById(@PathVariable UUID id){
         return ResponseEntity.ok(livroService.getLivroById(id));
     }
 
     // Criar um livro
     @PostMapping 
-    public ResponseEntity<LivroResponseDTO> createLivro(@RequestBody LivroCreateDTO livroCreateDTO){
-        return ResponseEntity.ok(livroService.createLivro(livroCreateDTO));
+    public ResponseEntity<LivroResponseDTO> createLivro(@Valid @RequestBody LivroCreateDTO livroCreateDTO){
+        LivroResponseDTO created = livroService.createLivro(livroCreateDTO);
+        var location = ServletUriComponentsBuilder.fromCurrentRequest()
+            .path("/{id}")
+            .buildAndExpand(created.id())
+            .toUri();
+        return ResponseEntity.created(location).body(created);
     }
 
     // Atualizar um livro
     @PutMapping("/{id}")
     public ResponseEntity<LivroResponseDTO> updateLivro(
-        @PathVariable String id, 
-        @RequestBody LivroCreateDTO livroCreateDTO
+        @PathVariable UUID id,
+        @Valid @RequestBody LivroUpdateDTO livroUpdateDTO
     ){
-        return ResponseEntity.ok(livroService.updateLivro(id, livroCreateDTO));
+        return ResponseEntity.ok(livroService.updateLivro(id, livroUpdateDTO));
 
     }
 
     // Apagar um livro
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteLivro(@PathVariable String id){
+    public ResponseEntity<Void> deleteLivro(@PathVariable UUID id){
         
         livroService.deleteLivro(id);
         return ResponseEntity.noContent().build();

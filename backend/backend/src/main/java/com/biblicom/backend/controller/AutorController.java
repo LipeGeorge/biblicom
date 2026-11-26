@@ -11,9 +11,11 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import com.biblicom.backend.entity.dto.AutorCreateDTO;
-import com.biblicom.backend.entity.dto.AutorResponseDTO;
+import jakarta.validation.Valid;
+import com.biblicom.backend.entity.dto.Autor.AutorCreateDTO;
+import com.biblicom.backend.entity.dto.Autor.AutorResponseDTO;
 import com.biblicom.backend.service.AutorService;
 
 @RestController
@@ -34,25 +36,32 @@ public class AutorController {
 
     // Listar autor por ID
     @GetMapping("/{id}")
-    public ResponseEntity<AutorResponseDTO> getAutorById(@PathVariable String id) {
+    public ResponseEntity<AutorResponseDTO> getAutorById(@PathVariable Long id) {
         return ResponseEntity.ok(autorService.getAutorById(id));
     }
 
     // Criar novo autor
     @PostMapping
-    public ResponseEntity<AutorResponseDTO> createAutor(@RequestBody AutorCreateDTO novoAutor) {
-        return ResponseEntity.ok(autorService.createAutor(novoAutor));
+    public ResponseEntity<AutorResponseDTO> createAutor(@Valid @RequestBody AutorCreateDTO novoAutor) {
+        AutorResponseDTO created = autorService.createAutor(novoAutor);
+        var location = ServletUriComponentsBuilder.fromCurrentRequest()
+            .path("/{id}")
+            .buildAndExpand(created.id())
+            .toUri();
+        return ResponseEntity.created(location).body(created);
     }
 
     // Editar autor
     @PutMapping("/{id}")
-    public ResponseEntity<AutorResponseDTO> updateAutor(@PathVariable String id, @RequestBody AutorCreateDTO novoNome) {
+    public ResponseEntity<AutorResponseDTO> updateAutor(
+        @PathVariable Long id,
+        @Valid @RequestBody AutorCreateDTO novoNome) {
         return ResponseEntity.ok(autorService.updateAutor(id, novoNome));
     }
 
     // Excluir autor
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteAutor(@PathVariable String id) {
+    public ResponseEntity<Void> deleteAutor(@PathVariable Long id) {
         autorService.deleteAutor(id);
         return ResponseEntity.noContent().build();
     }
