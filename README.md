@@ -149,5 +149,5 @@ A exportação de relatórios em PDF não faz parte do backend; o painel permite
 
 ## Desenvolvedores
 
-- [Lipe George](https://github.com/LipeGeorge) — [@LipeGeorge](https://github.com/LipeGeorge)
-- [Avelino Faco](https://github.com/avelinofaco) — [@avelinofaco](https://github.com/avelinofaco)
+- Backend — [@LipeGeorge](https://github.com/LipeGeorge)
+- Frontend — [@avelinofaco](https://github.com/avelinofaco)
