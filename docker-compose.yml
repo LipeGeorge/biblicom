@@ -1,0 +1,62 @@
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-biblicom_course_root}
+      MYSQL_DATABASE: ${DB_NAME:-biblicom}
+      MYSQL_USER: ${DB_USER:-biblicom_app}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-biblicom_course_db}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  backend:
+    build:
+      context: ./backend/backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-biblicom}
+      DB_USER: ${DB_USER:-biblicom_app}
+      DB_PASSWORD: ${DB_PASSWORD:-biblicom_course_db}
+      BIBLICOM_ADMIN_BOOTSTRAP_ENABLED: ${BIBLICOM_ADMIN_BOOTSTRAP_ENABLED:-true}
+      BIBLICOM_ADMIN_EMAIL: ${BIBLICOM_ADMIN_EMAIL:-admin@biblicom.local}
+      BIBLICOM_ADMIN_PASSWORD: ${BIBLICOM_ADMIN_PASSWORD:-Biblicom-Curso-2026!}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      SPRING_JPA_OPEN_IN_VIEW: "false"
+      SPRING_JPA_SHOW_SQL: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/auth/csrf >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  mysql_data:

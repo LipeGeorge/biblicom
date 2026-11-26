@@ -1,58 +1,81 @@
 import { useState } from 'react';
 import { CheckCircle } from 'lucide-react';
-import { Livro } from '../models/Livro';
-import { Emprestimo } from '../models/Emprestimo';
-import { validarNovoEmprestimo } from '../services/bibliotecaService';
 import { StatusBadge } from '../components/StatusBadge';
+import { bibliotecaService } from '../services/bibliotecaService';
 
-export function Circulacao({ livros, setLivros, leitores, emprestimos, setEmprestimos }) {
-  const [novoEmp, setNovoEmp] = useState({ leitorId: '', livroId: '', dataPrevista: '' });
+function dataLocalHoje() {
+  const hoje = new Date();
+  const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+  const dia = String(hoje.getDate()).padStart(2, '0');
+  return `${hoje.getFullYear()}-${mes}-${dia}`;
+}
 
-  const handleRegistrarEmprestimo = (e) => {
-    e.preventDefault();
-    const livro = livros.find((l) => l.id === Number(novoEmp.livroId));
-    const leitorId = Number(novoEmp.leitorId);
+export function Circulacao({ livros, leitores, emprestimos, onDadosAlterados }) {
+  const [novoEmprestimo, setNovoEmprestimo] = useState({
+    leitorId: '',
+    livroId: '',
+    exemplarId: '',
+    dataPrevistaDevolucao: '',
+  });
+  const [exemplaresDisponiveis, setExemplaresDisponiveis] = useState([]);
+  const [erro, setErro] = useState('');
+  const [carregandoExemplares, setCarregandoExemplares] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [devolvendoId, setDevolvendoId] = useState(null);
 
-    const validacao = validarNovoEmprestimo(livro, leitorId, emprestimos);
-    if (!validacao.valido) {
-      alert(validacao.erro);
-      return;
+  const handleSelecionarLivro = async (livroId) => {
+    setErro('');
+    setExemplaresDisponiveis([]);
+    setNovoEmprestimo((current) => ({ ...current, livroId, exemplarId: '' }));
+    if (!livroId) return;
+
+    setCarregandoExemplares(true);
+    try {
+      const exemplares = await bibliotecaService.getExemplares(livroId);
+      setExemplaresDisponiveis(exemplares.filter((exemplar) => exemplar.status === 'DISPONIVEL'));
+    } catch (error) {
+      setErro(error.message);
+    } finally {
+      setCarregandoExemplares(false);
     }
-
-    const hoje = new Date().toISOString().split('T')[0];
-    const registro = new Emprestimo(Date.now(), leitorId, livro.id, hoje, novoEmp.dataPrevista);
-
-    setEmprestimos([registro, ...emprestimos]);
-    setLivros(
-      livros.map((l) =>
-        l.id === livro.id
-          ? new Livro(l.id, l.titulo, l.autor, l.genero, l.totalExemplares, l.disponiveis - 1)
-          : l
-      )
-    );
-    setNovoEmp({ leitorId: '', livroId: '', dataPrevista: '' });
   };
 
-  const handleDevolucao = (empId) => {
-    const emp = emprestimos.find((e) => e.id === empId);
-    if (!emp || !emp.isAtivo) return;
+  const handleRegistrarEmprestimo = async (event) => {
+    event.preventDefault();
+    setErro('');
+    setSalvando(true);
+    try {
+      await bibliotecaService.criarEmprestimo({
+        leitorId: Number(novoEmprestimo.leitorId),
+        exemplarId: Number(novoEmprestimo.exemplarId),
+        dataPrevistaDevolucao: novoEmprestimo.dataPrevistaDevolucao,
+      });
+      setNovoEmprestimo({
+        leitorId: '',
+        livroId: '',
+        exemplarId: '',
+        dataPrevistaDevolucao: '',
+      });
+      setExemplaresDisponiveis([]);
+      await onDadosAlterados();
+    } catch (error) {
+      setErro(error.message);
+    } finally {
+      setSalvando(false);
+    }
+  };
 
-    const hoje = new Date().toISOString().split('T')[0];
-    setEmprestimos(
-      emprestimos.map((e) =>
-        e.id === empId
-          ? new Emprestimo(e.id, e.leitorId, e.livroId, e.dataEmprestimo, e.dataPrevista, hoje)
-          : e
-      )
-    );
-
-    setLivros(
-      livros.map((l) =>
-        l.id === emp.livroId
-          ? new Livro(l.id, l.titulo, l.autor, l.genero, l.totalExemplares, l.disponiveis + 1)
-          : l
-      )
-    );
+  const handleDevolucao = async (emprestimoId) => {
+    setErro('');
+    setDevolvendoId(emprestimoId);
+    try {
+      await bibliotecaService.registrarDevolucao(emprestimoId);
+      await onDadosAlterados();
+    } catch (error) {
+      setErro(error.message);
+    } finally {
+      setDevolvendoId(null);
+    }
   };
 
   return (
@@ -60,57 +83,91 @@ export function Circulacao({ livros, setLivros, leitores, emprestimos, setEmpres
       <h1 className="text-2xl font-bold text-slate-800">Empréstimos</h1>
       <form
         onSubmit={handleRegistrarEmprestimo}
-        className="bg-white p-5 rounded-xl shadow-[0_2px_8px_rgba(15,23,42,0.06)] grid grid-cols-1 md:grid-cols-4 gap-3 items-end"
+        className="grid grid-cols-1 items-end gap-3 rounded-xl bg-white p-5 shadow-[0_2px_8px_rgba(15,23,42,0.06)] md:grid-cols-5"
       >
         <div>
-          <label className="text-xs font-medium">Leitor</label>
+          <label htmlFor="loan-reader" className="text-xs font-medium">Leitor</label>
           <select
+            id="loan-reader"
             required
-            value={novoEmp.leitorId}
-            onChange={(e) => setNovoEmp({ ...novoEmp, leitorId: e.target.value })}
+            value={novoEmprestimo.leitorId}
+            onChange={(event) =>
+              setNovoEmprestimo({ ...novoEmprestimo, leitorId: event.target.value })
+            }
             className="w-full rounded-lg bg-slate-50 p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="">Selecione um leitor</option>
-            {leitores.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.nome}
-              </option>
+            {leitores.map((leitor) => (
+              <option key={leitor.id} value={leitor.id}>{leitor.nome}</option>
             ))}
           </select>
         </div>
         <div>
-          <label className="text-xs font-medium">Livro</label>
+          <label htmlFor="loan-book" className="text-xs font-medium">Livro</label>
           <select
+            id="loan-book"
             required
-            value={novoEmp.livroId}
-            onChange={(e) => setNovoEmp({ ...novoEmp, livroId: e.target.value })}
+            value={novoEmprestimo.livroId}
+            onChange={(event) => handleSelecionarLivro(event.target.value)}
             className="w-full rounded-lg bg-slate-50 p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="">Selecione um livro</option>
-            {livros.map((l) => (
-              <option key={l.id} value={l.id} disabled={!l.podeEmprestar()}>
-                {l.titulo} ({l.disponiveis} disp.)
+            {livros.map((livro) => (
+              <option
+                key={livro.id}
+                value={livro.id}
+                disabled={livro.exemplaresDisponiveis === 0}
+              >
+                {livro.titulo} ({livro.exemplaresDisponiveis} disp.)
               </option>
             ))}
           </select>
         </div>
         <div>
-          <label className="text-xs font-medium">Devolução Prevista</label>
+          <label htmlFor="loan-copy" className="text-xs font-medium">Exemplar</label>
+          <select
+            id="loan-copy"
+            required
+            disabled={!novoEmprestimo.livroId || carregandoExemplares}
+            value={novoEmprestimo.exemplarId}
+            onChange={(event) =>
+              setNovoEmprestimo({ ...novoEmprestimo, exemplarId: event.target.value })
+            }
+            className="w-full rounded-lg bg-slate-50 p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+          >
+            <option value="">
+              {carregandoExemplares ? 'Carregando...' : 'Selecione um exemplar'}
+            </option>
+            {exemplaresDisponiveis.map((exemplar) => (
+              <option key={exemplar.id} value={exemplar.id}>Exemplar #{exemplar.id}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="loan-due-date" className="text-xs font-medium">Devolução Prevista</label>
           <input
+            id="loan-due-date"
             required
             type="date"
-            aria-label="Selecione a data da devolução prevista"
-            value={novoEmp.dataPrevista}
-            onChange={(e) => setNovoEmp({ ...novoEmp, dataPrevista: e.target.value })}
+            min={dataLocalHoje()}
+            value={novoEmprestimo.dataPrevistaDevolucao}
+            onChange={(event) =>
+              setNovoEmprestimo({
+                ...novoEmprestimo,
+                dataPrevistaDevolucao: event.target.value,
+              })
+            }
             className="w-full rounded-lg bg-slate-50 p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
         <button
           type="submit"
-          className="bg-indigo-600 text-white p-2 rounded-lg text-sm font-medium hover:bg-indigo-700"
+          disabled={salvando || leitores.length === 0 || !novoEmprestimo.exemplarId}
+          className="rounded-lg bg-indigo-600 p-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Registrar Empréstimo
+          {salvando ? 'Registrando...' : 'Registrar Empréstimo'}
         </button>
+        {erro && <p role="alert" className="text-sm text-red-600 md:col-span-5">{erro}</p>}
       </form>
 
       <div className="overflow-x-auto rounded-xl bg-white p-5 shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
@@ -118,7 +175,7 @@ export function Circulacao({ livros, setLivros, leitores, emprestimos, setEmpres
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th className="px-4 py-3 font-semibold">Leitor</th>
-              <th className="px-4 py-3 font-semibold">Livro</th>
+              <th className="px-4 py-3 font-semibold">Livro / Exemplar</th>
               <th className="px-4 py-3 font-semibold">Retirada</th>
               <th className="px-4 py-3 font-semibold">Prevista</th>
               <th className="px-4 py-3 font-semibold">Situação</th>
@@ -126,33 +183,37 @@ export function Circulacao({ livros, setLivros, leitores, emprestimos, setEmpres
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {emprestimos.map((emp) => {
-              const leitor = leitores.find((l) => l.id === emp.leitorId);
-              const livro = livros.find((l) => l.id === emp.livroId);
-              return (
-                <tr key={emp.id} className="transition-colors hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-800">{leitor?.nome}</td>
-                  <td className="px-4 py-3 text-slate-600">{livro?.titulo}</td>
-                  <td className="px-4 py-3 text-slate-600">{emp.dataEmprestimo}</td>
-                  <td className="px-4 py-3 text-slate-600">{emp.dataPrevista}</td>
-                  <td className="px-4 py-3">
-                    <StatusBadge tipo="circulacao" valor={emp.statusCirculacao} />
-                  </td>
-                  <td>
-                    {emp.isAtivo ? (
-                      <button
-                        onClick={() => handleDevolucao(emp.id)}
-                        className="flex items-center gap-1 text-emerald-700 hover:underline font-medium"
-                      >
-                        <CheckCircle size={15} /> Devolver
-                      </button>
-                    ) : (
-                      <span className="text-xs text-slate-400">Em {emp.dataDevolucao}</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
+            {emprestimos.map((emprestimo) => (
+              <tr key={emprestimo.id} className="transition-colors hover:bg-slate-50">
+                <td className="px-4 py-3 font-medium text-slate-800">{emprestimo.leitorNome}</td>
+                <td className="px-4 py-3 text-slate-600">
+                  {emprestimo.livroTitulo} <span className="text-xs text-slate-400">#{emprestimo.exemplarId}</span>
+                </td>
+                <td className="px-4 py-3 text-slate-600">{emprestimo.dataEmprestimo}</td>
+                <td className="px-4 py-3 text-slate-600">{emprestimo.dataPrevistaDevolucao}</td>
+                <td className="px-4 py-3">
+                  <StatusBadge tipo="circulacao" valor={emprestimo.situacao} />
+                </td>
+                <td className="px-4 py-3">
+                  {emprestimo.situacao !== 'DEVOLVIDO' ? (
+                    <button
+                      type="button"
+                      disabled={devolvendoId === emprestimo.id}
+                      onClick={() => handleDevolucao(emprestimo.id)}
+                      className="flex items-center gap-1 font-medium text-emerald-700 hover:underline disabled:opacity-50"
+                    >
+                      <CheckCircle size={15} />
+                      {devolvendoId === emprestimo.id ? 'Salvando...' : 'Devolver'}
+                    </button>
+                  ) : (
+                    <span className="text-xs text-slate-400">{emprestimo.dataDevolucao}</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {emprestimos.length === 0 && (
+              <tr><td className="px-4 py-6 text-center text-slate-500" colSpan="6">Nenhum empréstimo registrado.</td></tr>
+            )}
           </tbody>
         </table>
       </div>

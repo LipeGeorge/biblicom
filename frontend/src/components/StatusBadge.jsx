@@ -20,13 +20,14 @@ export function StatusBadge({ tipo, valor }) {
   const estilosCirculacao = {
     DEVOLVIDO: 'bg-slate-100 text-slate-600',
     ATRASADO: 'bg-red-100 text-red-700',
+    ATIVO: 'bg-blue-100 text-blue-700',
     PROXIMO_VENCIMENTO: 'bg-amber-100 text-amber-800',
     NO_PRAZO: 'bg-blue-100 text-blue-700',
   };
 
   return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${estilosCirculacao[valor]}`}>
-      {valor.replace('_', ' ')}
+    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${estilosCirculacao[valor] || 'bg-slate-100 text-slate-600'}`}>
+      {valor?.replace('_', ' ') || 'Indefinido'}
     </span>
   );
 }

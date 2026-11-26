@@ -1,23 +1,24 @@
 import { useState } from 'react';
 import { AlertCircle, BookOpen, Eye, EyeOff } from 'lucide-react';
 
-export function Login({ bibliotecario, onLoginSuccess, onAbrirCadastro }) {
+export function Login({ onLoginSuccess, erroApi }) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [erro, setErro] = useState('');
+  const [enviando, setEnviando] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (
-      email.trim().toLowerCase() !== bibliotecario.email.toLowerCase() ||
-      senha !== bibliotecario.senha
-    ) {
-      setErro('E-mail ou senha inválidos.');
-      return;
-    }
     setErro('');
-    onLoginSuccess();
+    setEnviando(true);
+    try {
+      await onLoginSuccess(email.trim(), senha);
+    } catch (error) {
+      setErro(error.message || 'Não foi possível autenticar.');
+    } finally {
+      setEnviando(false);
+    }
   };
 
   return (
@@ -28,10 +29,11 @@ export function Login({ bibliotecario, onLoginSuccess, onAbrirCadastro }) {
         </h1>
         <p className="text-sm text-slate-500">Acesso restrito ao responsável pelo acervo</p>
         <div>
-          <label className="block text-sm font-medium text-slate-700">Usuário / E-mail</label>
+          <label className="block text-sm font-medium text-slate-700">E-mail</label>
           <input
             required
-            type="text"
+            type="email"
+            autoComplete="username"
             placeholder="Digite seu e-mail"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -44,6 +46,7 @@ export function Login({ bibliotecario, onLoginSuccess, onAbrirCadastro }) {
             <input
               required
               type={mostrarSenha ? 'text' : 'password'}
+              autoComplete="current-password"
               placeholder="Digite sua senha"
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
@@ -59,26 +62,20 @@ export function Login({ bibliotecario, onLoginSuccess, onAbrirCadastro }) {
             </button>
           </div>
         </div>
-        {erro && (
+        {(erro || erroApi) && (
           <p className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-            <AlertCircle size={16} /> {erro}
+            <AlertCircle size={16} /> {erro || erroApi}
           </p>
         )}
         <button
           type="submit"
+          disabled={enviando}
           className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700"
         >
-          Entrar no Sistema
+          {enviando ? 'Autenticando...' : 'Entrar no Sistema'}
         </button>
         <p className="text-center text-sm text-slate-500">
-          Ainda não possui cadastro?{' '}
-          <button
-            type="button"
-            onClick={onAbrirCadastro}
-            className="font-semibold text-indigo-600 hover:text-indigo-800"
-          >
-            Cadastre-se
-          </button>
+          Acesso exclusivo ao responsável pela biblioteca.
         </p>
       </form>
     </div>

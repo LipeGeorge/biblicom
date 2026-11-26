@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { BookOpen, Users, ArrowLeftRight, BarChart3, LogOut, Menu, X, UserPlus } from 'lucide-react';
 
-export function Navbar({ abaAtiva, setAbaAtiva, onLogout }) {
+export function Navbar({ abaAtiva, setAbaAtiva, usuario, onLogout }) {
   const [menuAberto, setMenuAberto] = useState(false);
   const abas = [
     { id: 'dashboard', label: 'Relatórios & Alertas', icon: BarChart3 },
@@ -71,7 +71,7 @@ export function Navbar({ abaAtiva, setAbaAtiva, onLogout }) {
             );
           })}
         </nav>
-        <button onClick={onLogout} className="m-3 flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-600">
+        <button type="button" onClick={onLogout} className="m-3 flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-600">
           <LogOut size={18} /> Sair
         </button>
       </aside>
@@ -82,7 +82,7 @@ export function Navbar({ abaAtiva, setAbaAtiva, onLogout }) {
         </div>
         <div className="leading-tight">
           <p className="font-bold text-slate-800">BiblioComunitária</p>
-          <p className="text-xs text-slate-500">UFC Quixadá</p>
+          <p className="truncate text-xs text-slate-500">{usuario?.email}</p>
         </div>
       </div>
 
@@ -107,7 +107,9 @@ export function Navbar({ abaAtiva, setAbaAtiva, onLogout }) {
       </nav>
 
       <div className="p-3">
+        <p className="truncate px-4 pb-2 text-xs text-slate-500">{usuario?.email}</p>
         <button
+          type="button"
           onClick={onLogout}
           className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-200"
         >

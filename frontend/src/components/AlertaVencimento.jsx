@@ -24,13 +24,13 @@ export function AlertaVencimento({ alertas, livros, leitores }) {
               {alertas.map((emp) => {
                 const leitor = leitores.find((l) => l.id === emp.leitorId);
                 const livro = livros.find((l) => l.id === emp.livroId);
-                const isAtrasado = emp.statusCirculacao === 'ATRASADO';
+                const isAtrasado = emp.situacao === 'ATRASADO';
                 return (
                   <tr key={emp.id} className="hover:bg-slate-50">
-                    <td className="px-3 py-3 font-medium text-slate-800">{leitor?.nome}</td>
-                    <td className="px-3 py-3 text-slate-600">{livro?.titulo}</td>
-                    <td className="px-3 py-3 text-slate-600">{leitor?.contato}</td>
-                    <td className="px-3 py-3 text-slate-600">{emp.dataPrevista}</td>
+                    <td className="px-3 py-3 font-medium text-slate-800">{emp.leitorNome || leitor?.nome}</td>
+                    <td className="px-3 py-3 text-slate-600">{emp.livroTitulo || livro?.titulo}</td>
+                    <td className="px-3 py-3 text-slate-600">{leitor?.email}</td>
+                    <td className="px-3 py-3 text-slate-600">{emp.dataPrevistaDevolucao}</td>
                     <td className="px-3 py-3">
                       <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${isAtrasado ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}`}>
                         {isAtrasado ? `Atrasado há ${Math.abs(emp.diasRestantes)} dia(s)` : `Vence em ${emp.diasRestantes} dia(s)`}

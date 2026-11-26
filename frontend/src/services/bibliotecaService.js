@@ -1,50 +1,130 @@
-import { Livro } from '../models/Livro';
-import { Leitor } from '../models/Leitor';
-import { Emprestimo } from '../models/Emprestimo';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
+const unsafeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
-export const dadosIniciais = {
-  autores: [
-    { id: 1, nome: 'Machado de Assis', nacionalidade: 'Brasileira' },
-    { id: 2, nome: 'Jorge Amado', nacionalidade: 'Brasileira' },
-    { id: 3, nome: 'Antoine de Saint-Exupéry', nacionalidade: 'Francesa' },
-  ],
-  livros: [
-    new Livro(1, 'Dom Casmurro', 'Machado de Assis', 'Romance', 5, 3),
-    new Livro(2, 'Capitães da Areia', 'Jorge Amado', 'Ficção', 2, 0),
-    new Livro(3, 'O Pequeno Príncipe', 'Antoine de Saint-Exupéry', 'Infantil', 4, 4),
-  ],
-  leitores: [
-    new Leitor(1, 'Maria Silva', '(88) 99911-2233', '123.456.789-00'),
-    new Leitor(2, 'João Santos', '(88) 98822-3344', '987.654.321-11'),
-  ],
-  emprestimos: [
-    new Emprestimo(1, 1, 1, '2026-11-10', '2026-11-20', null), // Atrasado
-    new Emprestimo(2, 2, 2, '2026-11-20', '2026-11-27', null), // Próximo do vencimento
-    new Emprestimo(3, 1, 2, '2026-11-15', '2026-11-25', null), // No prazo
-  ],
-};
+let csrfToken = null;
 
-export function validarNovoEmprestimo(livro, leitorId, emprestimos) {
-  // RN01: Disponibilidade
-  if (!livro || !livro.podeEmprestar()) {
-    return { valido: false, erro: 'Regra de Negócio (RN01): Livro sem exemplares disponíveis.' };
+async function request(path, { method = 'GET', body } = {}) {
+  const normalizedMethod = method.toUpperCase();
+  const headers = new Headers({ Accept: 'application/json' });
+
+  if (body !== undefined) {
+    headers.set('Content-Type', 'application/json');
   }
 
-  // RN02: Bloqueio por Atraso
-  const atrasosLeitor = emprestimos.filter(
-    (emp) => emp.leitorId === leitorId && emp.statusCirculacao === 'ATRASADO'
-  );
-  if (atrasosLeitor.length > 0) {
-    return { valido: false, erro: 'Regra de Negócio (RN02): Leitor possui empréstimos em atraso.' };
+  if (unsafeMethods.has(normalizedMethod)) {
+    csrfToken = await obterTokenCsrf();
+    headers.set('X-XSRF-TOKEN', csrfToken);
   }
 
-  // RN03: Limite de 3 exemplares simultâneos
-  const ativosLeitor = emprestimos.filter(
-    (emp) => emp.leitorId === leitorId && emp.isAtivo
-  );
-  if (ativosLeitor.length >= 3) {
-    return { valido: false, erro: 'Regra de Negócio (RN03): Limite máximo de 3 empréstimos ativos atingido.' };
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method: normalizedMethod,
+      headers,
+      credentials: 'include',
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  } catch {
+    throw new Error('Não foi possível conectar à API. Verifique se o backend está em execução.');
   }
 
-  return { valido: true, erro: null };
+  if (path === '/auth/login' && response.ok) {
+    csrfToken = null;
+  }
+  if (path === '/auth/logout' && response.ok) {
+    csrfToken = null;
+  }
+
+  if (response.status === 204) {
+    return null;
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+  const payload = contentType.includes('application/json')
+    ? await response.json()
+    : null;
+
+  if (!response.ok) {
+    const message = payload?.detail || payload?.message || payload?.error;
+    const error = new Error(
+      response.status === 401
+        ? 'E-mail ou senha inválidos.'
+        : message || `A API respondeu com erro (${response.status}).`
+    );
+    error.status = response.status;
+    throw error;
+  }
+
+  return payload;
 }
+
+async function obterTokenCsrf() {
+  if (csrfToken) {
+    return csrfToken;
+  }
+
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}/auth/csrf`, {
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+    });
+  } catch {
+    throw new Error('Não foi possível conectar à API. Verifique se o backend está em execução.');
+  }
+
+  if (!response.ok) {
+    throw new Error(`Não foi possível obter o token CSRF (${response.status}).`);
+  }
+
+  const payload = await response.json();
+  csrfToken = payload.token;
+  if (!csrfToken) {
+    throw new Error('A API não retornou o token CSRF esperado.');
+  }
+  return csrfToken;
+}
+
+export const bibliotecaService = {
+  login: (email, senha) => request('/auth/login', {
+    method: 'POST',
+    body: { email, senha },
+  }),
+
+  logout: () => request('/auth/logout', { method: 'POST' }),
+
+  getCurrentUser: () => request('/auth/me'),
+
+  getAutores: () => request('/autores'),
+  criarAutor: (nome) => request('/autores', {
+    method: 'POST',
+    body: { nome },
+  }),
+
+  getLivros: () => request('/livros'),
+  getExemplares: (livroId) => request(`/livros/${encodeURIComponent(livroId)}/exemplares`),
+  criarLivro: ({ titulo, genero, autorId, quantidadeExemplares }) => request('/livros', {
+    method: 'POST',
+    body: { titulo, genero, autorId: String(autorId), quantidadeExemplares },
+  }),
+
+  getLeitores: () => request('/leitores'),
+  criarLeitor: (leitor) => request('/leitores', {
+    method: 'POST',
+    body: leitor,
+  }),
+
+  getEmprestimos: () => request('/emprestimos'),
+  getEmprestimosDoLeitor: (leitorId) =>
+    request(`/emprestimos/leitores/${encodeURIComponent(leitorId)}`),
+  criarEmprestimo: ({ leitorId, exemplarId, dataPrevistaDevolucao }) =>
+    request('/emprestimos', {
+      method: 'POST',
+      body: { leitorId, exemplarId, dataPrevistaDevolucao },
+    }),
+  registrarDevolucao: (emprestimoId) =>
+    request(`/emprestimos/${encodeURIComponent(emprestimoId)}/devolucao`, {
+      method: 'PATCH',
+    }),
+  getRelatorio: () => request('/emprestimos/relatorios'),
+};

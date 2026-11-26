@@ -1,31 +1,25 @@
 import { useState } from 'react';
 import { Plus, UserRound } from 'lucide-react';
+import { bibliotecaService } from '../services/bibliotecaService';
 
-export function Autores({ autores, setAutores }) {
-  const [novoAutor, setNovoAutor] = useState({ nome: '', nacionalidade: '' });
+export function Autores({ autores, onAutorCriado }) {
+  const [nome, setNome] = useState('');
+  const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    const nome = novoAutor.nome.trim();
-    if (!nome) return;
-
-    const jaExiste = autores.some(
-      (autor) => autor.nome.toLowerCase() === nome.toLowerCase()
-    );
-    if (jaExiste) {
-      alert('Este autor já está cadastrado.');
-      return;
+    setErro('');
+    setSalvando(true);
+    try {
+      await bibliotecaService.criarAutor(nome.trim());
+      setNome('');
+      await onAutorCriado();
+    } catch (error) {
+      setErro(error.message);
+    } finally {
+      setSalvando(false);
     }
-
-    setAutores([
-      ...autores,
-      {
-        id: Date.now(),
-        nome,
-        nacionalidade: novoAutor.nacionalidade.trim(),
-      },
-    ]);
-    setNovoAutor({ nome: '', nacionalidade: '' });
   };
 
   return (
@@ -34,35 +28,27 @@ export function Autores({ autores, setAutores }) {
 
       <form
         onSubmit={handleSubmit}
-        className="grid grid-cols-1 gap-3 rounded-xl bg-white p-5 shadow-[0_2px_8px_rgba(15,23,42,0.06)] md:grid-cols-3 md:items-end"
+        className="grid grid-cols-1 gap-3 rounded-xl bg-white p-5 shadow-[0_2px_8px_rgba(15,23,42,0.06)] md:grid-cols-[1fr_auto] md:items-end"
       >
         <div>
           <label className="text-xs font-medium">Nome do autor</label>
           <input
+            id="author-name"
             required
-            placeholder="Digite o nome do autor"
-            value={novoAutor.nome}
-            onChange={(event) => setNovoAutor({ ...novoAutor, nome: event.target.value })}
-            className="mt-1 w-full rounded-lg bg-slate-50 p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-        <div>
-          <label className="text-xs font-medium">Nacionalidade</label>
-          <input
-            placeholder="Digite a nacionalidade"
-            value={novoAutor.nacionalidade}
-            onChange={(event) =>
-              setNovoAutor({ ...novoAutor, nacionalidade: event.target.value })
-            }
+            maxLength={255}
+            value={nome}
+            onChange={(event) => setNome(event.target.value)}
             className="mt-1 w-full rounded-lg bg-slate-50 p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
         <button
           type="submit"
+          disabled={salvando}
           className="flex items-center justify-center gap-2 rounded-lg bg-indigo-600 p-2 text-sm font-medium text-white hover:bg-indigo-700"
         >
-          <Plus size={16} /> Cadastrar Autor
+          <Plus size={16} /> {salvando ? 'Salvando...' : 'Cadastrar Autor'}
         </button>
+        {erro && <p role="alert" className="text-sm text-red-600 md:col-span-2">{erro}</p>}
       </form>
 
       <div className="rounded-xl bg-white p-5 shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
@@ -74,16 +60,12 @@ export function Autores({ autores, setAutores }) {
             <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-4 py-3 font-semibold">Nome</th>
-                <th className="px-4 py-3 font-semibold">Nacionalidade</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {autores.map((autor) => (
                 <tr key={autor.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium text-slate-800">{autor.nome}</td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {autor.nacionalidade || 'Não informada'}
-                  </td>
                 </tr>
               ))}
             </tbody>
