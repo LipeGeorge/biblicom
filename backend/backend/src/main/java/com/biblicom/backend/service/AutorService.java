@@ -4,8 +4,8 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.biblicom.backend.entity.dto.AutorCreateDTO;
-import com.biblicom.backend.entity.dto.AutorResponseDTO;
+import com.biblicom.backend.entity.dto.Autor.AutorCreateDTO;
+import com.biblicom.backend.entity.dto.Autor.AutorResponseDTO;
 import com.biblicom.backend.repository.AutorRepository;
 
 @Service 

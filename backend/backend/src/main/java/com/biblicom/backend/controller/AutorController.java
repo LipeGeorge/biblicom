@@ -12,8 +12,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.biblicom.backend.entity.dto.AutorCreateDTO;
-import com.biblicom.backend.entity.dto.AutorResponseDTO;
+import com.biblicom.backend.entity.dto.Autor.AutorCreateDTO;
+import com.biblicom.backend.entity.dto.Autor.AutorResponseDTO;
 import com.biblicom.backend.service.AutorService;
 
 @RestController

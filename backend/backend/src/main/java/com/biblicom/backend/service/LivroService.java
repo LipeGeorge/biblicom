@@ -8,8 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.biblicom.backend.entity.Livro;
-import com.biblicom.backend.entity.dto.LivroCreateDTO;
-import com.biblicom.backend.entity.dto.LivroResponseDTO;
+import com.biblicom.backend.entity.dto.Livro.LivroCreateDTO;
+import com.biblicom.backend.entity.dto.Livro.LivroResponseDTO;
 import com.biblicom.backend.repository.AutorRepository;
 import com.biblicom.backend.repository.LivroRepository;
 

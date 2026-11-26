@@ -1,4 +1,4 @@
-package com.biblicom.backend.entity.dto;
+package com.biblicom.backend.entity.dto.Livro;
 
 import java.util.UUID;
 
